@@ -1,0 +1,60 @@
+Integration Test
+
+src/test/java
+resources
+ application.properties - configure 
+interface Repo extertends JPAH2Repository<Product,Integer>{}
+ 
+-------------------------------------------------------------
+@SpringBootTest(webEnv=SpringBootTest.WebEnv.RANDOM_PORT)
+class TestIntegration{
+
+@LocalServerPort
+private int port;
+
+private baseurl baseurl="http://localhost";
+
+private RestTemplate restTemplate;
+
+@Autowired
+private Repo repo;
+
+@BeforeAll
+void init(){
+restTemplate = new RestTemplate();
+}
+@BeforeEach
+void setUrl(){
+baseUrl = baseUrl.concate(":").concate(port).concate("/products")
+}
+
+@Test
+void testProduct(){
+Product p = new Product("Mobile",1000);
+Product resp = restTemplate.postForEntity(baseUrl,p,Product.class);
+assertEquals("Mobile",resp.getName());
+asserEquals(1,repo.findAll().size());
+}
+
+@Test
+@Sql(statements="INSERT INTO PRODUCT_TABLE(id,name).values(1,"Mobile)",executionPhase=Sql.ExecutionPhase.BEFPRE_TEST_METHOD)
+@Sql(statements="DELETE FROM PRODUCT_TABLE where name="Mobile",executionPhase=Sql.ExecutionPhase.AFTER_TEST_METHOD)
+public void testGetProducts(){
+List<Product> products = restTemplate.getForObject(baseUrl,List.class);
+assertEquals(1,products.size());
+assertEquals(1,repo.findAll().size());
+}
+
+@Test
+@Sql(statements="INSERT INTO PRODUCT_TABLE(id,name).values(1,"Mobile)",executionPhase=Sql.ExecutionPhase.BEFPRE_TEST_METHOD)
+@Sql(statements="DELETE FROM PRODUCT_TABLE where name="Mobile",executionPhase=Sql.ExecutionPhase.AFTER_TEST_METHOD)
+public void TestFindProductById(){
+Product p = restTemplate.getForObject(baseUrl+"/{id}",Product.class,1);
+assertAll(
+()->assertNotNull(p),
+()->assertEqulas(1,p.getId())
+()->assertEquals("Mobile",p.getName());
+)
+}
+
+
